@@ -6,6 +6,8 @@
 
 using namespace OpenMesh;
 
+enum SMOOTHING { NONE, LAPLACIAN, CVT };
+
 int main(const int argc, const char **argv)
 {
     int err {};
@@ -15,11 +17,17 @@ int main(const int argc, const char **argv)
     double min_angle = 26.0;
     double max_length = 1e5;
     double max_area = .5e10;
+    int smooth_type = NONE;
+    int smooth_iter = 20;
+    double smooth_step = 1.;
 
     const char *arg {};
     if ((arg = get_value(argv, argv + argc, "--min-angle")))  { min_angle = atof(arg); }
     if ((arg = get_value(argv, argv + argc, "--max-length"))) { max_length = atof(arg); }
     if ((arg = get_value(argv, argv + argc, "--max-area")))   { max_area = atof(arg); }
+    if ((arg = get_value(argv, argv + argc, "--smooth-type"))) { smooth_type = atoi(arg); }
+    if ((arg = get_value(argv, argv + argc, "--smooth-iter"))) { smooth_iter = atoi(arg); }
+    if ((arg = get_value(argv, argv + argc, "--smooth-step"))) { smooth_step = atof(arg); }
 
     filename.append(argv[1]);
     prefix = filename.substr(0, filename.find_last_of("."));
@@ -46,6 +54,14 @@ int main(const int argc, const char **argv)
     err = refine(mesh, radian(min_angle), max_length, max_area);
     save_mesh(mesh, (prefix + ".refined.mesh").c_str());
     if (err) { printf("Refinement failed.\n"); return err; }
+
+    if (smooth_type == LAPLACIAN)
+    { err = laplacian_smoothing(mesh, smooth_step, smooth_iter); }
+    else if (smooth_type == CVT)
+    { err = local_CVT_smoothing(mesh, smooth_step, smooth_iter); }
+    if (smooth_type)
+    { save_mesh(mesh, (prefix + ".smooth.mesh").c_str()); }
+    if (err) { printf("Smoothing failed.\n"); return err; }
 
     return err;
 }

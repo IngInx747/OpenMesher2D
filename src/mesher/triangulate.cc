@@ -92,11 +92,16 @@ static inline void split(TriMesh &mesh, Fh fh, Vh vh)
 
     mesh.split_copy(fh, vh);
 
+    // The exterior region is undefined in CDT stage.
+    assert(!hidden);
+
     // The point by chance can be in the exterior
     // region and incident edges should be hidden.
-    // Notice, there is no hidden entity in CDT stage.
     if (hidden) for (Eh eh : mesh.ve_range(vh))
     { mesh.status(eh).set_hidden(true); }
+
+    if (hidden)
+    { mesh.status(vh).set_hidden(true); }
 }
 
 static inline Fh search_triangle(const TriMesh &mesh, const Vec2 &u, Fh fh = Fh {})
@@ -107,7 +112,7 @@ static inline Fh search_triangle(const TriMesh &mesh, const Vec2 &u, Fh fh = Fh 
     return search_triangle_linear(mesh, u, fh);
 }
 
-static int make_delaunay(TriMesh &mesh, const Vh &vh)
+static inline int make_delaunay(TriMesh &mesh, const Vh &vh)
 {
     auto delaunifier = make_flipper(mesh, EuclideanDelaunay {});
     const int max_n_flip = (int)mesh.n_edges() * 50;
@@ -124,7 +129,7 @@ static int make_delaunay(TriMesh &mesh, const Vh &vh)
     return 0;
 }
 
-static int make_delaunay(TriMesh &mesh, const Eh &eh)
+static inline int make_delaunay(TriMesh &mesh, const Eh &eh)
 {
     auto delaunifier = make_flipper(mesh, EuclideanDelaunay {});
 

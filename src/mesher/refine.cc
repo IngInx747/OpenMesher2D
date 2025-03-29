@@ -192,12 +192,12 @@ static inline void split(TriMesh &mesh, Fh fh, Vh vh)
 
     mesh.split_copy(fh, vh);
 
-    // Suppose the vertex never falls into exterior region
+    // Suppose no vertex will fall into exterior
+    // region during refinement.
     assert(!hidden);
 
     // The point by chance can be in the exterior
     // region and incident edges should be hidden.
-    // Notice, there is no hidden entity in CDT stage.
     if (hidden) for (Eh eh : mesh.ve_range(vh))
     { mesh.status(eh).set_hidden(true); }
 
