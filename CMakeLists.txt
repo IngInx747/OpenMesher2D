@@ -1,12 +1,11 @@
 cmake_minimum_required(VERSION 3.0)
 
-project(DELAUNAY-REFINEMENT VERSION 1.0 LANGUAGES CXX)
+project(OPENMESHER2D VERSION 1.0 LANGUAGES CXX)
 
 if (WIN32)
     add_definitions(
         -DNOMINMAX
-        -D_USE_MATH_DEFINES
-        -D_CRT_SECURE_NO_WARNINGS)
+        -D_USE_MATH_DEFINES)
 endif ()
 
 find_package(OpenMesh REQUIRED)

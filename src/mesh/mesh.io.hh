@@ -10,7 +10,7 @@ int read_node(
 int save_node(
     const double* vs, const int nv,
     const char* filename,
-    const std::streamsize prec = 17i64);
+    const std::streamsize prec = 17);
 
 int read_poly(
     std::vector<Vec2> &vs,
@@ -25,7 +25,7 @@ int save_poly(
     const double *ss, const int ns,
     const char* filename,
     const int offset = 1,
-    const std::streamsize prec = 17i64);
+    const std::streamsize prec = 17);
 
 int save_mesh(
     const double *vs, const int nv,
@@ -33,7 +33,7 @@ int save_mesh(
     const int    *es, const int ne,
     const char* filename,
     const int offset = 1,
-    const std::streamsize prec = 17i64);
+    const std::streamsize prec = 17);
 
 int save_obj(
     const double *vs, const int nv,
@@ -41,7 +41,7 @@ int save_obj(
     const int    *es, const int ne,
     const char *filename,
     const int offset = 1,
-    const std::streamsize prec = 17i64);
+    const std::streamsize prec = 17);
 
 template <class MeshT>
 int read_mesh(MeshT&, const char*);

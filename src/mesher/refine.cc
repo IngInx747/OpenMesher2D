@@ -173,20 +173,10 @@ static inline TRI_LOC locate(const TriMesh &mesh, const Fh &fh, const Vec2 &u, H
 
 static inline void split(TriMesh &mesh, Hh hh, Vh vh)
 {
-    Vh vh0 = mesh.from_vertex_handle(hh);
-    Vh vh1 = mesh.to_vertex_handle  (hh);
-
-    mesh.split_edge_copy(mesh.edge_handle(hh), vh);
+    split_copy(mesh, mesh.edge_handle(hh), vh);
 
     // mark as on-segment
     set_segment(mesh, vh, true);
-
-    // OpenMesh copies property to all 4 new edges even 2 of
-    // which are not sharp. Unsharp the 2 edges accordingly.
-    for (Hh hh : mesh.voh_range(vh))
-    if (mesh.to_vertex_handle(hh) != vh0)
-    if (mesh.to_vertex_handle(hh) != vh1)
-    { set_sharp(mesh, mesh.edge_handle(hh), false); }
 
     // One of 2 new diagonal edges can be in the exterior
     // region and hence should be hidden.
@@ -198,7 +188,21 @@ static inline void split(TriMesh &mesh, Hh hh, Vh vh)
 
 static inline void split(TriMesh &mesh, Fh fh, Vh vh)
 {
+    bool hidden = mesh.status(fh).hidden();
+
     mesh.split_copy(fh, vh);
+
+    // Suppose the vertex never falls into exterior region
+    assert(!hidden);
+
+    // The point by chance can be in the exterior
+    // region and incident edges should be hidden.
+    // Notice, there is no hidden entity in CDT stage.
+    if (hidden) for (Eh eh : mesh.ve_range(vh))
+    { mesh.status(eh).set_hidden(true); }
+
+    if (hidden)
+    { mesh.status(vh).set_hidden(true); }
 }
 
 static inline bool is_collapsable(TriMesh &mesh, const Hh &hhc)

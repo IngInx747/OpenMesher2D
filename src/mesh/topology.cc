@@ -25,26 +25,6 @@ inline int get_boundaries(const MeshT &mesh, std::vector<Hh> &boundaries)
 template
 int get_boundaries(const TriMesh&, std::vector<Hh>&);
 
-template <class MeshT>
-inline void sort_boundaries(const MeshT &mesh, std::vector<Hh> &boundaries)
-{
-    std::unordered_map<Hh, double> length_table {};
-
-    for (const auto &boundary : boundaries)
-    {
-        double len {};
-        for (auto hdge : make_smart(boundary, mesh).loop())
-            len += mesh.calc_edge_length(hdge);
-        length_table[boundary] = len;
-    }
-
-    std::sort(boundaries.begin(), boundaries.end(), [&length_table](Hh hh, Hh hi) -> bool
-    { return length_table[hh] < length_table[hi]; });
-}
-
-template
-void sort_boundaries(const TriMesh&, std::vector<Hh>&);
-
 #if 0
 
 template <class MeshT>

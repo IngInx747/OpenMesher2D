@@ -49,5 +49,5 @@ int make_delaunay(TriMesh &mesh)
 
     delaunifier.clear();
 
-    return n_flip;
+    return 0;
 }

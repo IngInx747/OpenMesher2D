@@ -40,6 +40,21 @@ struct EuclideanDelaunay
 /// Utilities
 ////////////////////////////////////////////////////////////////
 
+static inline bool is_exterior(const TriMesh &mesh, const Fh &fh)
+{
+    return is_hidden(mesh, fh);
+}
+
+static inline bool is_exterior(const TriMesh &mesh, const Eh &eh)
+{
+    return is_hidden(mesh, eh);
+}
+
+static inline bool is_exterior(const TriMesh &mesh, const Hh &hh)
+{
+    return mesh.is_boundary(hh) || is_hidden(mesh, mesh.face_handle(hh));
+}
+
 static inline TRI_LOC locate(const TriMesh &mesh, const Fh &fh, const Vec2 &u, Hh &hh)
 {
     Hh hh0 = mesh.halfedge_handle(fh);
@@ -60,20 +75,28 @@ static inline TRI_LOC locate(const TriMesh &mesh, const Fh &fh, const Vec2 &u, H
 
 static inline void split(TriMesh &mesh, Hh hh, Vh vh)
 {
-    Vh vh0 = mesh.from_vertex_handle(hh);
-    Vh vh1 = mesh.to_vertex_handle  (hh);
+    split_copy(mesh, mesh.edge_handle(hh), vh);
 
-    mesh.split_edge_copy(mesh.edge_handle(hh), vh);
-
-    for (Hh hh : mesh.voh_range(vh))
-    if (mesh.to_vertex_handle(hh) != vh0)
-    if (mesh.to_vertex_handle(hh) != vh1)
-    { set_sharp(mesh, mesh.edge_handle(hh), false); }
+    // One of 2 new diagonal edges can be in the exterior
+    // region and hence should be hidden.
+    // Notice, there is no hidden entity in CDT stage.
+    for (Eh eh : mesh.ve_range(vh))
+    if (is_exterior(mesh, mesh.halfedge_handle(eh, 0)))
+    if (is_exterior(mesh, mesh.halfedge_handle(eh, 1)))
+    { set_hidden(mesh, eh, true); }
 }
 
 static inline void split(TriMesh &mesh, Fh fh, Vh vh)
 {
+    bool hidden = mesh.status(fh).hidden();
+
     mesh.split_copy(fh, vh);
+
+    // The point by chance can be in the exterior
+    // region and incident edges should be hidden.
+    // Notice, there is no hidden entity in CDT stage.
+    if (hidden) for (Eh eh : mesh.ve_range(vh))
+    { mesh.status(eh).set_hidden(true); }
 }
 
 static inline Fh search_triangle(const TriMesh &mesh, const Vec2 &u, Fh fh = Fh {})
@@ -82,6 +105,41 @@ static inline Fh search_triangle(const TriMesh &mesh, const Vec2 &u, Fh fh = Fh 
 
     //return search_triangle_zigzag(mesh, u, fh);
     return search_triangle_linear(mesh, u, fh);
+}
+
+static int make_delaunay(TriMesh &mesh, const Vh &vh)
+{
+    auto delaunifier = make_flipper(mesh, EuclideanDelaunay {});
+    const int max_n_flip = (int)mesh.n_edges() * 50;
+
+    for (Hh hh : mesh.voh_range(vh)) if (!mesh.is_boundary(hh))
+    {
+        delaunifier.enqueue(mesh.edge_handle(hh));
+        delaunifier.enqueue(mesh.edge_handle(mesh.next_halfedge_handle(hh)));
+    }
+
+    delaunifier.flip_all(max_n_flip);
+    delaunifier.clear();
+
+    return 0;
+}
+
+static int make_delaunay(TriMesh &mesh, const Eh &eh)
+{
+    auto delaunifier = make_flipper(mesh, EuclideanDelaunay {});
+
+    const int max_n_flip = (int)mesh.n_edges() * 50;
+
+    const Eh ehs[4] {
+        mesh.edge_handle(mesh.next_halfedge_handle(mesh.halfedge_handle(eh, 0))),
+        mesh.edge_handle(mesh.prev_halfedge_handle(mesh.halfedge_handle(eh, 0))),
+        mesh.edge_handle(mesh.next_halfedge_handle(mesh.halfedge_handle(eh, 1))),
+        mesh.edge_handle(mesh.prev_halfedge_handle(mesh.halfedge_handle(eh, 1)))
+    };
+
+    delaunifier.enqueue(ehs, 4); delaunifier.flip_all(max_n_flip); delaunifier.clear();
+
+    return 0;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -313,24 +371,6 @@ static Hh restore_constraint(TriMesh &mesh, Vh vh0, Vh vh1, std::vector<Hh> &hit
     return hh_rc;
 }
 
-static int make_delaunay(TriMesh &mesh, const Eh &eh)
-{
-    auto delaunifier = make_flipper(mesh, EuclideanDelaunay {});
-
-    const int max_n_flip = (int)mesh.n_edges() * 50;
-
-    const Eh ehs[4] {
-        mesh.edge_handle(mesh.next_halfedge_handle(mesh.halfedge_handle(eh, 0))),
-        mesh.edge_handle(mesh.prev_halfedge_handle(mesh.halfedge_handle(eh, 0))),
-        mesh.edge_handle(mesh.next_halfedge_handle(mesh.halfedge_handle(eh, 1))),
-        mesh.edge_handle(mesh.prev_halfedge_handle(mesh.halfedge_handle(eh, 1)))
-    };
-
-    delaunifier.enqueue(ehs, 4); delaunifier.flip_all(max_n_flip); delaunifier.clear();
-
-    return 0;
-}
-
 static int restore_constraints(
     TriMesh &mesh,
     const std::vector<Int2> &es,
@@ -384,7 +424,7 @@ static int restore_constraints(
 /// Wrapping up
 ////////////////////////////////////////////////////////////////
 
-static int triangulate(
+int triangulate(
     const std::vector<Vec2> &vs,
     const std::vector<Int2> &es,
     TriMesh &mesh,
@@ -414,13 +454,11 @@ int triangulate(
     const std::vector<Vec2> &vs,
     const std::vector<Int2> &es,
     TriMesh &mesh,
-    std::unordered_map<int, int>       &vv_ovlp,
-    std::vector<std::pair<Int2, Int2>> &ee_itsc,
-    std::vector<std::pair<Int2, int>>  &ev_ovlp)
+    std::unordered_map<Vh, Vh> &dups)
 {
-    std::unordered_map<Vh, Vh> dups {};
+    std::vector<std::pair<Int2, Int2>> ee_itsc {};
+    std::vector<std::pair<Int2, int>>  ev_ovlp {};
     int err = triangulate(vs, es, mesh, dups, ee_itsc, ev_ovlp);
-    for (const auto &vv : dups) vv_ovlp[vv.second.idx()] = vv.first.idx();
     return err;
 }
 
@@ -433,6 +471,28 @@ int triangulate(
     std::vector<std::pair<Int2, Int2>> ee_itsc {};
     std::vector<std::pair<Int2, int>>  ev_ovlp {};
     return triangulate(vs, es, mesh, dups, ee_itsc, ev_ovlp);
+}
+
+////////////////////////////////////////////////////////////////
+/// Atomic operation
+////////////////////////////////////////////////////////////////
+
+Hh restore_segment(TriMesh &mesh, const Vh &vh0, const Vh &vh1)
+{
+    std::vector<Hh> hhs {}; // intersecting edges
+    std::vector<Vh> vhs {}; // overlapping vertices
+
+    Hh hh = restore_constraint(mesh, vh0, vh1, hhs, vhs);
+
+    if (hh.is_valid())
+    {
+        Eh eh = mesh.edge_handle(hh);
+        set_sharp(mesh, eh, true);
+        make_delaunay(mesh, vh0);
+        make_delaunay(mesh, vh1);
+    }
+
+    return hh;
 }
 
 ////////////////////////////////////////////////////////////////

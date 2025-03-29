@@ -12,14 +12,22 @@ int triangulate(
     const std::vector<Vec2>&,
     const std::vector<Int2>&,
     TriMesh&,
-    std::unordered_map<int, int>       &duplicated_vertices,
+    std::unordered_map<Vh, Vh>         &duplicated_vertices,
     std::vector<std::pair<Int2, Int2>> &intersecting_segments,
     std::vector<std::pair<Int2, int>>  &overlapping_vertices);
 
 int triangulate(
     const std::vector<Vec2>&,
     const std::vector<Int2>&,
+    TriMesh&,
+    std::unordered_map<Vh, Vh> &duplicated_vertices);
+    
+int triangulate(
+    const std::vector<Vec2>&,
+    const std::vector<Int2>&,
     TriMesh&);
+
+Hh restore_segment(TriMesh&, const Vh &vertex0, const Vh &vertex1);
 
 int hide_exterior_region(TriMesh&, const std::vector<Vec2> &seeds);
 

@@ -110,10 +110,13 @@ public:
     /// Enqueue all edges in the mesh
     void enqueue_all();
 
-    /// Enqueue specific edges
+    /// Enqueue an edge
+    void enqueue(const Eh&);
+
+    /// Enqueue edges
     void enqueue(const Eh[], const int);
 
-    /// Enqueue edges that conform a custom rule
+    /// Enqueue edges with a rule
     template <class PredicateT> void enqueue(const PredicateT&);
 
     /// Test Delaunayhood (and flip) one edge at a time.
@@ -160,6 +163,16 @@ template <class MeshT, class DelaunayT>
 inline void Flipper<MeshT, DelaunayT>::enqueue_all()
 {
     for (Eh eh : mesh.edges()) if (!is_enqueued(eh))
+    {
+        frontier.push_back(eh);
+        set_enqueued(eh, true);
+    }
+}
+
+template <class MeshT, class DelaunayT>
+inline void Flipper<MeshT, DelaunayT>::enqueue(const Eh &eh)
+{
+    if (!is_enqueued(eh))
     {
         frontier.push_back(eh);
         set_enqueued(eh, true);
@@ -272,13 +285,59 @@ inline Flipper<MeshT, DelaunayT> make_flipper(MeshT &mesh, const DelaunayT &is_d
 { return Flipper<MeshT, DelaunayT>(mesh, is_delaunay); }
 
 ////////////////////////////////////////////////////////////////
+/// Modification
+////////////////////////////////////////////////////////////////
+
+namespace OpenMesh
+{
+
+inline void split_copy(TriConnectivity &mesh, EdgeHandle _eh, VertexHandle _vh)
+{
+    const VertexHandle v0 = mesh.to_vertex_handle(mesh.halfedge_handle(_eh, 0));
+    const VertexHandle v1 = mesh.to_vertex_handle(mesh.halfedge_handle(_eh, 1));
+
+    const size_t nf = mesh.n_faces();
+
+    // Split the halfedge (handle will be preserved)
+    mesh.split(_eh, _vh);
+
+    // Copy the properties of the original edge to the corresponding edges
+    for (auto voh_it = mesh.voh_iter(_vh); voh_it.is_valid(); ++voh_it)
+    {
+        EdgeHandle eh = mesh.edge_handle(*voh_it);
+        VertexHandle vh = mesh.to_vertex_handle(*voh_it);
+
+        // only copy to the edge that is split from the original one
+        if (vh == v0 || vh == v1)
+            mesh.copy_all_properties(_eh, eh, true);
+    }
+
+    for (VertexHandle vh : {v0, v1})
+    {
+        // get the halfedge pointing from new vertex to old vertex
+        const HalfedgeHandle hh = mesh.find_halfedge(_vh, vh);
+
+        if (!mesh.is_boundary(hh)) // for boundaries there are no faces whose properties need to be copied
+        {
+            FaceHandle fh0 = mesh.face_handle(hh);
+            FaceHandle fh1 = mesh.opposite_face_handle(mesh.prev_halfedge_handle(hh));
+
+            if (static_cast<size_t>(fh0.idx()) >= nf) // is fh0 the new face?
+                std::swap(fh0, fh1);
+
+            // copy properties from old face to new face
+            mesh.copy_all_properties(fh0, fh1, true);
+        }
+    }
+}
+
+} // namespace OpenMesh
+
+////////////////////////////////////////////////////////////////
 /// Utilities
 ////////////////////////////////////////////////////////////////
 
 template <class MeshT>
 inline int get_boundaries(const MeshT&, std::vector<Hh>&);
-
-template <class MeshT>
-inline void sort_boundaries(const MeshT&, std::vector<Hh>&);
 
 #endif

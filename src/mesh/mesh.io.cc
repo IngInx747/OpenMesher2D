@@ -43,7 +43,7 @@ int save_obj(
     const int    *es, const int ne,
     const char *filename,
     const int offset = 1,
-    const std::streamsize prec = 17i64);
+    const std::streamsize prec = 17);
 
 int save_obj(
     const double *vs, const int nv,
@@ -287,7 +287,7 @@ int save_mesh(
 ////////////////////////////////////////////////////////////////
 
 template <class MeshT>
-static int reindex(const MeshT &mesh, std::unordered_map<Vh, int> &v2i)
+inline int reindex(const MeshT &mesh, std::unordered_map<Vh, int> &v2i)
 {
     int nv {};
 
@@ -298,7 +298,7 @@ static int reindex(const MeshT &mesh, std::unordered_map<Vh, int> &v2i)
 }
 
 template <class MeshT>
-static int reindex(const MeshT &mesh, std::unordered_map<Fh, int> &f2i)
+inline int reindex(const MeshT &mesh, std::unordered_map<Fh, int> &f2i)
 {
     int nf {};
 
@@ -309,7 +309,7 @@ static int reindex(const MeshT &mesh, std::unordered_map<Fh, int> &f2i)
 }
 
 template <class MeshT>
-static int reindex(const MeshT &mesh, std::unordered_map<Eh, int> &e2i)
+inline int reindex(const MeshT &mesh, std::unordered_map<Eh, int> &e2i)
 {
     int ne {};
 
@@ -375,7 +375,7 @@ inline int save_mesh_builtin(const MeshT &mesh, const char *filename)
 
     if (mesh.has_halfedge_texcoords2D()) opt += IO::Options::FaceTexCoord;
 
-    if (!IO::write_mesh(mesh, filename, opt, 17i64)) err = IO_ERR_TYPE::INTERNAL;
+    if (!IO::write_mesh(mesh, filename, opt, 17)) err = IO_ERR_TYPE::INTERNAL;
 
     return err;
 }
@@ -481,7 +481,7 @@ inline int save_mesh_dot_mesh(MeshT &mesh, const char *filename)
 }
 
 template <>
-static int save_mesh_dot_mesh(const TriMesh &mesh, const char *filename)
+int save_mesh_dot_mesh(const TriMesh &mesh, const char *filename)
 {
     std::ofstream out(filename, std::ios::out);
     if (!out) return IO_ERR_TYPE::CANNOT_OPEN;
@@ -578,7 +578,7 @@ static int save_mesh_dot_mesh(const TriMesh &mesh, const char *filename)
 }
 
 template <class MeshT>
-static int save_mesh_dot_node(const MeshT &mesh, const char *filename)
+inline int save_mesh_dot_node(const MeshT &mesh, const char *filename)
 {
     std::ofstream out(filename, std::ios::out);
     if (!out) return IO_ERR_TYPE::CANNOT_OPEN;
@@ -621,7 +621,7 @@ static int save_mesh_dot_node(const MeshT &mesh, const char *filename)
 }
 
 template <class MeshT>
-static int save_mesh_dot_poly(const MeshT &mesh, const char *filename)
+inline int save_mesh_dot_poly(const MeshT &mesh, const char *filename)
 {
     std::ofstream out(filename, std::ios::out);
     if (!out) return IO_ERR_TYPE::CANNOT_OPEN;
@@ -804,7 +804,7 @@ inline int save_poly_obj(const MeshT &mesh, const char *filename)
 }
 
 template <class MeshT>
-static int save_poly_dot_poly(const MeshT &mesh, const char *filename)
+inline int save_poly_dot_poly(const MeshT &mesh, const char *filename)
 {
     std::ofstream out(filename, std::ios::out);
     if (!out) return IO_ERR_TYPE::CANNOT_OPEN;
@@ -879,7 +879,7 @@ static int save_poly_dot_poly(const MeshT &mesh, const char *filename)
 }
 
 template <class MeshT>
-static int save_poly_dot_mesh(const MeshT &mesh, const char *filename)
+inline int save_poly_dot_mesh(const MeshT &mesh, const char *filename)
 {
     std::ofstream out(filename, std::ios::out);
     if (!out) return IO_ERR_TYPE::CANNOT_OPEN;
