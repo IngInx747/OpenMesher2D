@@ -6,7 +6,7 @@
 
 using namespace OpenMesh;
 
-enum SMOOTHING { NONE, LAPLACIAN, CVT };
+enum SMOOTHING { NONE, LAPLACIAN, CVT, ODT };
 
 int main(const int argc, const char **argv)
 {
@@ -59,6 +59,8 @@ int main(const int argc, const char **argv)
     { err = laplacian_smoothing(mesh, smooth_step, smooth_iter); }
     else if (smooth_type == CVT)
     { err = local_CVT_smoothing(mesh, smooth_step, smooth_iter); }
+    else if (smooth_type == ODT)
+    { err = local_ODT_smoothing(mesh, smooth_step, smooth_iter); }
     if (smooth_type)
     { save_mesh(mesh, (prefix + ".smooth.mesh").c_str()); }
     if (err) { printf("Smoothing failed.\n"); return err; }

@@ -342,7 +342,7 @@ static int deferred_smoothing(TriMesh &mesh, const Relocatable &pos_eval, const 
 /// Algorithms
 ////////////////////////////////////////////////////////////////
 
-static inline Vec2 delta_laplacian(const TriMesh &mesh, Vh vh)
+static inline Vec2 delta_laplacian(const TriMesh &mesh, const Vh &vh)
 {
     const auto u0 = get_xy(mesh, vh);
     Vec2 du { 0 }; double w {};
@@ -405,7 +405,7 @@ static inline Vec2 centroid(const Vec2 us[], const int n)
     return uc / (area*3);
 }
 
-static inline Vec2 delta_local_CVT(const TriMesh &mesh, Vh vh)
+static inline Vec2 delta_local_CVT(const TriMesh &mesh, const Vh &vh)
 {
     Vec2 us[256]; int n {};
 
@@ -442,6 +442,49 @@ int local_CVT_smoothing(TriMesh &mesh, const double step, const int max_num_iter
     Relocator relocator(step);
 
     mark_segment_vertices(mesh);
+
+    return deferred_smoothing(mesh, relocator, max_num_iter);
+}
+
+static inline Vec2 delta_local_ODT(const TriMesh &mesh, const Vh &vh)
+{
+    const auto u0 = get_xy(mesh, vh);
+    Vec2 du { 0 }; double area {};
+
+    for (Hh hh : mesh.voh_range(vh))
+    {
+        const auto u1 = get_xy(mesh, mesh.to_vertex_handle(hh));
+        const auto u2 = get_xy(mesh, mesh.to_vertex_handle(mesh.next_halfedge_handle(hh)));
+        const auto d1 = u1 - u0;
+        const auto d2 = u2 - u0;
+        const auto dt = u2 - u1;
+        const auto n = Vec2 { dt[1], -dt[0] } * 0.5;
+        const double s = (dot(d1, d1) + dot(d2, d2));
+        const double a = fabs(cross(d1, d2));
+        du += n*s;
+        area += a;
+    }
+
+    return du / area;
+}
+
+int local_ODT_smoothing(TriMesh &mesh, const double step, const int max_num_iter)
+{
+    struct Relocator : public Relocatable
+    {
+        Relocator(const double s): lambda(s) {}
+
+        virtual Vec2 operator()(const TriMesh &mesh, Vh vh) const final
+        {
+            const auto u0 = get_xy(mesh, vh);
+            const auto du = delta_local_ODT(mesh, vh);
+            return u0 + du * lambda;
+        }
+
+        const double lambda;
+    };
+
+    Relocator relocator(step);
 
     return deferred_smoothing(mesh, relocator, max_num_iter);
 }

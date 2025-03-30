@@ -37,4 +37,6 @@ int laplacian_smoothing(TriMesh&, const double step, const int max_num_iter);
 
 int local_CVT_smoothing(TriMesh&, const double step, const int max_num_iter);
 
+int local_ODT_smoothing(TriMesh&, const double step, const int max_num_iter);
+
 #endif
