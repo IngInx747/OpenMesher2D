@@ -1,8 +1,8 @@
-# Delaynay Refinement
+# OpenMesher2D
 
 ## About
 
-An OpenMesh implementation of constrained Delaunay triangulation(CDT) and refinement.
+An OpenMesh implementation of constrained Delaunay triangulation(CDT), refinement and smoothing.
 
 ## Demo
 
