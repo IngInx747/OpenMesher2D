@@ -115,6 +115,7 @@ static inline Fh search_triangle(const TriMesh &mesh, const Vec2 &u, Fh fh = Fh 
 static inline int make_delaunay(TriMesh &mesh, const Vh &vh)
 {
     auto delaunifier = make_flipper(mesh, EuclideanDelaunay {});
+
     const int max_n_flip = (int)mesh.n_edges() * 50;
 
     for (Hh hh : mesh.voh_range(vh)) if (!mesh.is_boundary(hh))
@@ -135,14 +136,13 @@ static inline int make_delaunay(TriMesh &mesh, const Eh &eh)
 
     const int max_n_flip = (int)mesh.n_edges() * 50;
 
-    const Eh ehs[4] {
-        mesh.edge_handle(mesh.next_halfedge_handle(mesh.halfedge_handle(eh, 0))),
-        mesh.edge_handle(mesh.prev_halfedge_handle(mesh.halfedge_handle(eh, 0))),
-        mesh.edge_handle(mesh.next_halfedge_handle(mesh.halfedge_handle(eh, 1))),
-        mesh.edge_handle(mesh.prev_halfedge_handle(mesh.halfedge_handle(eh, 1)))
-    };
+    delaunifier.enqueue(mesh.edge_handle(mesh.next_halfedge_handle(mesh.halfedge_handle(eh, 0))));
+    delaunifier.enqueue(mesh.edge_handle(mesh.prev_halfedge_handle(mesh.halfedge_handle(eh, 0))));
+    delaunifier.enqueue(mesh.edge_handle(mesh.next_halfedge_handle(mesh.halfedge_handle(eh, 1))));
+    delaunifier.enqueue(mesh.edge_handle(mesh.prev_halfedge_handle(mesh.halfedge_handle(eh, 1))));
 
-    delaunifier.enqueue(ehs, 4); delaunifier.flip_all(max_n_flip); delaunifier.clear();
+    delaunifier.flip_all(max_n_flip);
+    delaunifier.clear();
 
     return 0;
 }

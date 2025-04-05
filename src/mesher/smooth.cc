@@ -154,6 +154,7 @@ static inline Fh search_triangle(const TriMesh &mesh, const Vec2 &u, Fh fh = Fh 
 static inline int make_delaunay(TriMesh &mesh, const Vh &vh)
 {
     auto delaunifier = make_flipper(mesh, EuclideanDelaunay {});
+
     const int max_n_flip = (int)mesh.n_edges() * 50;
 
     for (Hh hh : mesh.voh_range(vh)) if (!mesh.is_boundary(hh))
