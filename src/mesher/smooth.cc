@@ -487,5 +487,7 @@ int local_ODT_smoothing(TriMesh &mesh, const double step, const int max_num_iter
 
     Relocator relocator(step);
 
+    mark_segment_vertices(mesh);
+
     return deferred_smoothing(mesh, relocator, max_num_iter);
 }
