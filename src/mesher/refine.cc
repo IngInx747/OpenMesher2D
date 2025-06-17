@@ -6,6 +6,7 @@
 #include "segment.hh"
 #include "mesh.hh"
 #include "topology.hh"
+#include "container.hh"
 #include "search.hh"
 
 using namespace OpenMesh;
@@ -111,30 +112,6 @@ struct EuclideanDelaunay
 {
     inline bool operator()(const TriMesh &mesh, const Eh &eh) const
     { return is_sharp(mesh, eh) || is_delaunay(mesh, eh); } // If true, do not flip
-};
-
-////////////////////////////////////////////////////////////////
-/// Containers
-////////////////////////////////////////////////////////////////
-
-template <class T>
-struct unique_vector
-{
-    inline void push_back(const T &v)
-    { if (std::find(vs.begin(), vs.end(), v) == vs.end()) { vs.push_back(v); } }
-
-    inline void pop_back()
-    { vs.pop_back(); }
-
-    inline void clear()
-    { vs.clear(); }
-
-    inline const std::vector<T> &vector() const
-    { return vs; }
-
-protected:
-
-    std::vector<T> vs;
 };
 
 ////////////////////////////////////////////////////////////////
@@ -731,7 +708,7 @@ static int refine_segments(TriMesh &mesh, const Encroachment &encroached)
         for (Eh eh : mesh.ve_range(vo)) { if (is_segment(mesh, eh)) eas.push_back(eh); }
 
         // check encroachment of affected segments
-        for (Eh eh : eas.vector()) { if (!is_deleted(mesh, eh)) if (is_segment(mesh, eh))
+        for (Eh eh : eas) { if (!is_deleted(mesh, eh)) if (is_segment(mesh, eh))
         for (Hh hh : mesh.eh_range(eh)) { if (encroached(mesh, hh))
         { segments.push_back(make_primitive(mesh, hh)); } } }
 
@@ -843,11 +820,11 @@ static int refine_interior(TriMesh &mesh, const BadTriangle &bad_triangle, const
             for (Hh hh : mesh.eh_range(eh)) if (!is_exterior(mesh, hh)) es.push_back(hh); }
 
             // check encroachment of affected segments
-            for (Hh hh : es.vector()) { if (!is_deleted(mesh, hh) && is_segment(mesh, hh) && encroached(mesh, hh))
+            for (Hh hh : es) { if (!is_deleted(mesh, hh) && is_segment(mesh, hh) && encroached(mesh, hh))
             { segments.push_back(make_primitive(mesh, hh)); } }
 
             // check quality of affected triangles
-            for (Hh hh : es.vector()) { if (!is_deleted(mesh, hh) && !is_exterior(mesh, hh)) { Fh fh = mesh.face_handle(hh);
+            for (Hh hh : es) { if (!is_deleted(mesh, hh) && !is_exterior(mesh, hh)) { Fh fh = mesh.face_handle(hh);
             if (bad_triangle(mesh, fh)) { triangles.push({ make_primitive(mesh, fh), calc_priority(mesh, fh) }); } } }
 
             ++n_new_vertices;
@@ -909,7 +886,7 @@ static int refine_interior(TriMesh &mesh, const BadTriangle &bad_triangle, const
             for (Hh hh : mesh.eh_range(eh)) if (!is_exterior(mesh, hh)) es.push_back(hh); } delaunifier.clear();
 
             // check encroachment over affected segments
-            std::vector<Hh> hhs {}; for (Hh hh : es.vector()) {
+            std::vector<Hh> hhs {}; for (Hh hh : es) {
             if (!is_deleted(mesh, hh) && is_segment(mesh, hh) && encroached(mesh, hh)) hhs.push_back(hh); }
 
             // record encroached segments
@@ -940,7 +917,7 @@ static int refine_interior(TriMesh &mesh, const BadTriangle &bad_triangle, const
             }
 
             // check quality of affected triangles
-            for (Hh hh : es.vector()) { if (!is_deleted(mesh, hh) && !is_exterior(mesh, hh)) { Fh fh = mesh.face_handle(hh);
+            for (Hh hh : es) { if (!is_deleted(mesh, hh) && !is_exterior(mesh, hh)) { Fh fh = mesh.face_handle(hh);
             if (bad_triangle(mesh, fh)) { triangles.push({ make_primitive(mesh, fh), calc_priority(mesh, fh) }); } } }
 
             ++n_new_vertices;
